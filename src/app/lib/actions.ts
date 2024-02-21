@@ -9,10 +9,15 @@ import { cookies } from 'next/headers';
 import dotenv from 'dotenv';
 import { sql } from '@vercel/postgres';
 import {
+  ChatRoom,
   Friend,
   FriendData,
   FriendRequest,
   FriendRequestInfo,
+  GetChatCardDataResponse,
+  GetChatRoomsResponse,
+  Message,
+  OpenChatRoomResponse,
   User,
 } from './definitions';
 import { strict } from 'assert';
@@ -389,6 +394,184 @@ export async function rejectFriendRequest(friendReqId: string) {
   } catch (error) {
     console.error('Error while rejecting friend request: ', error);
     result.error = 'Cannot reject friend request at the moment.';
+  } finally {
+    return result;
+  }
+}
+
+export async function findChatRoom(
+  currentUserId: string,
+  targetUserId: string
+) {
+  try {
+    const chatRoom =
+      await sql<ChatRoom>`SELECT * FROM chatrooms WHERE (user_id_1=${currentUserId} AND user_id_2=${targetUserId}) OR (user_id_1=${targetUserId} AND user_id_2=${currentUserId})`;
+
+    if (chatRoom.rowCount === 0) {
+      return null;
+    }
+
+    return Promise.resolve(chatRoom.rows[0]);
+  } catch (error) {
+    console.error('Error while finding chat room', error);
+    return null;
+  }
+}
+
+// Return the receiver and messages
+export async function openChatRoom(targetUserId: string) {
+  const result: OpenChatRoomResponse = {
+    id: '',
+    receiver: undefined,
+    messages: {},
+    error: '',
+  };
+
+  try {
+    const userSession = getUserSession();
+    const userId = userSession?.userId;
+
+    // get the target user obj
+    const targetUserQuery =
+      await sql<User>`SELECT id, username, is_online FROM users WHERE id=${targetUserId}`;
+    if (targetUserQuery.rowCount === 0) {
+      result.error = 'No target user found.';
+      return result;
+    }
+    const targetUser = targetUserQuery.rows[0];
+    result.receiver = targetUser;
+
+    // find the existing chat room
+    let chatRoom = await findChatRoom(userId!, targetUserId);
+
+    // if no chatroom is found, add a new one and pass an empty array of messages
+    if (!chatRoom) {
+      await sql`INSERT INTO chatrooms(type, user_id_1, user_id_2) VALUES ('personal', ${userId}, ${targetUserId})`;
+
+      chatRoom = await findChatRoom(userId!, targetUserId);
+      result.id = chatRoom?.id!;
+
+      return result;
+    }
+
+    // if there is a chatroom found, then fetch all the messages and pass to the result
+    result.id = chatRoom.id;
+    const messagesQuery =
+      await sql<Message>`SELECT * FROM messages WHERE chatroom_id=${chatRoom.id} ORDER BY timestamp`;
+
+    // modify the data to be divided by date
+    const messages = messagesQuery.rows;
+    // message will be grouped by date
+    const groupedMessages: { [key: string]: Message[] } = {};
+    messages.forEach((message) => {
+      const messageDate = new Date(message.timestamp);
+      const groupKey = `${messageDate.getFullYear()}/${
+        messageDate.getMonth() + 1
+      }/${messageDate.getDate()}`;
+
+      // if the date is in the group message, just add to that array, otherwise make a new one
+      if (groupedMessages.hasOwnProperty(groupKey)) {
+        groupedMessages[groupKey].push(message);
+      } else {
+        groupedMessages[groupKey] = [message];
+      }
+    });
+    result.messages = groupedMessages;
+
+    return result;
+  } catch (error) {
+    console.error('Error while opening chat room: ', error);
+    result.error = 'Cannot open the chat room at the moment.';
+    return result;
+  }
+}
+
+export async function sendMessage(
+  chatroomId: string,
+  creatorUsername: string,
+  text: string
+) {
+  const result = {
+    success: false,
+    error: '',
+  };
+  try {
+    const userSession = getUserSession();
+    const userId = userSession?.userId;
+
+    await sql`INSERT INTO messages(chatroom_id, creator_id, creator_username, text) VALUES (${chatroomId}, ${userId}, ${creatorUsername}, ${text})`;
+    // grab the newly inserted data ID
+    const topMessage = (
+      await sql<Message>`SELECT * FROM messages WHERE chatroom_id=${chatroomId} ORDER BY timestamp DESC`
+    ).rows[0];
+
+    // record the topmost messsage to the chatrooms table
+    await sql`UPDATE chatrooms SET last_message=${topMessage.id} WHERE id=${chatroomId}`;
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while sending message', error);
+    result.error = 'Fail to send message!';
+  } finally {
+    return result;
+  }
+}
+
+export async function getChatRooms() {
+  const result: GetChatRoomsResponse = {
+    chatRooms: [],
+    error: '',
+  };
+  try {
+    const userSession = getUserSession();
+    const userId = userSession?.userId;
+
+    const chatRooms = (
+      await sql<ChatRoom>`SELECT * FROM chatrooms WHERE user_id_1=${userId} OR user_id_2=${userId}`
+    ).rows;
+    result.chatRooms = chatRooms;
+  } catch (error) {
+    console.error('Error while getting chat rooms: ', error);
+    result.error = 'Cannot get chatrooms at the moment.';
+  } finally {
+    return result;
+  }
+}
+
+export async function getChatCardData(chatRoomData: ChatRoom) {
+  const result: GetChatCardDataResponse = {
+    receiverId: '',
+    receiverUsername: '',
+    lastUsername: '',
+    lastMessageTxt: '',
+    timestamp: undefined,
+    error: '',
+  };
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+
+    // fetch the receiver info
+    let receiverId =
+      chatRoomData.user_id_1 === userId
+        ? chatRoomData.user_id_2
+        : chatRoomData.user_id_1;
+    const receiver = (
+      await sql<User>`SELECT * FROM users WHERE id=${receiverId}`
+    ).rows[0];
+    result.receiverUsername = receiver.username;
+    result.receiverId = receiver.id;
+
+    const lastMsg = (
+      await sql<Message>`SELECT * FROM messages WHERE id=${chatRoomData.last_message}`
+    ).rows[0];
+    result.lastUsername = lastMsg.creator_username;
+    result.lastMessageTxt = lastMsg.text;
+    result.timestamp = lastMsg.timestamp;
+  } catch (error) {
+    console.error('Error while getting chat card data: ', error);
+    result.error = 'Cannot get chat card data at the moment.';
   } finally {
     return result;
   }

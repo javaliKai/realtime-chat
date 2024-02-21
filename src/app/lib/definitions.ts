@@ -37,3 +37,41 @@ export interface FriendRequest {
 export interface FriendRequestInfo extends FriendRequest {
   requester: string;
 }
+
+export interface ChatRoom {
+  id: string;
+  type: string;
+  user_id_1: string;
+  user_id_2: string;
+  last_message: string; // this last message is not the raw text msg, but the message id
+}
+
+export interface Message {
+  id: string;
+  chatroom_id: string;
+  creator_id: string;
+  creator_username: string;
+  text: string;
+  timestamp: Date;
+}
+
+export interface OpenChatRoomResponse {
+  id: string;
+  receiver: User | undefined;
+  messages: { [key: string]: Message[] };
+  error: string;
+}
+
+export interface GetChatRoomsResponse {
+  chatRooms: ChatRoom[];
+  error: string;
+}
+
+export interface GetChatCardDataResponse {
+  receiverId: string;
+  receiverUsername: string;
+  lastUsername: string;
+  lastMessageTxt: string;
+  timestamp: Date | undefined;
+  error: string;
+}

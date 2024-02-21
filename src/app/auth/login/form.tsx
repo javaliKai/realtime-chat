@@ -1,14 +1,33 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { loginAction } from '@/app/lib/actions';
 import { buttonPrimary } from '@/app/ui/buttonTheme';
-import { Button } from 'flowbite-react';
+import { Alert, Button, Spinner } from 'flowbite-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+function Submit() {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      pill
+      theme={buttonPrimary}
+      color='blue'
+      className='w-full'
+      // disabled={pending}
+      type='submit'
+      disabled={pending}
+    >
+      {pending ? <Spinner size='md' /> : 'Sign In'}
+    </Button>
+  );
+}
 
 export default function LoginForm() {
   const router = useRouter();
+
   const loginHandler = async (
     prevState: string | undefined,
     formData: FormData
@@ -32,7 +51,9 @@ export default function LoginForm() {
       action={formAction}
       className='flex flex-col w-full h-full pb-6 text-center bg-white rounded-3xl'
     >
-      {errorMesage}
+      <div className='mb-3'>
+        {errorMesage && <Alert color='failure'>{errorMesage}</Alert>}
+      </div>
       <h3 className='mb-3 text-4xl font-extrabold text-dark-grey-900'>
         Sign In
       </h3>
@@ -75,16 +96,7 @@ export default function LoginForm() {
           Keep Logged In
         </label>
       </div>
-      <Button
-        pill
-        theme={buttonPrimary}
-        color='blue'
-        className='w-full'
-        // disabled={pending}
-        type='submit'
-      >
-        Sign In
-      </Button>
+      <Submit />
       <p className='text-sm leading-relaxed text-grey-900'>
         Not registered yet?{' '}
         <Link

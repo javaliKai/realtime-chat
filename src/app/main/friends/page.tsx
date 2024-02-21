@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { TextInput } from 'flowbite-react';
+import { Suspense, useEffect, useState } from 'react';
+import { Spinner, TextInput } from 'flowbite-react';
 import SearchModal from './searchModal';
 import FriendBubble from './friendBubble';
 import { getAllUserFriends } from '@/app/lib/actions';
 import { FriendData } from '@/app/lib/definitions';
+import Loading from '@/app/ui/loading';
 
 export default function Page() {
   // States
@@ -80,11 +81,21 @@ export default function Page() {
         <hr />
         {errorMsg && <p>{errorMsg}</p>}
         <div className='max-h-[50vh] overflow-y-auto'>
-          {friendsLoading && <p>Loading friends...</p>}
-          {filteredFriends.length > 0 &&
-            friends.map((friend) => (
-              <FriendBubble key={friend.id} username={friend.username} />
-            ))}
+          <Suspense fallback={<Loading />}>
+            {friendsLoading && (
+              <div className='text-center mt-3'>
+                <Spinner size='lg' />
+              </div>
+            )}
+            {filteredFriends.length > 0 &&
+              friends.map((friend) => (
+                <FriendBubble
+                  key={friend.id}
+                  username={friend.username}
+                  userId={friend.id}
+                />
+              ))}
+          </Suspense>
         </div>
       </div>
     </>

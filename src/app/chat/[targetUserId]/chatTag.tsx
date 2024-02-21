@@ -1,12 +1,19 @@
 'use client';
 
-import ChatAvatar from '../ui/chatAvatar';
+import ChatAvatar from '../../ui/chatAvatar';
+import { User } from '@/app/lib/definitions';
+import { useRouter } from 'next/navigation';
 
-export default function ChatTag() {
+type ChatTagProps = {
+  receiver: User | undefined;
+};
+
+export default function ChatTag({ receiver }: ChatTagProps) {
+  const router = useRouter();
   return (
     <>
       <header className='min-h-[5rem] px-3 flex gap-3 items-center'>
-        <div>
+        <div onClick={() => router.back()}>
           {/* Back button */}
           <svg
             className='w-8 h-8 text-gray-800 dark:text-white'
@@ -24,10 +31,12 @@ export default function ChatTag() {
             />
           </svg>
         </div>
-        <ChatAvatar username='test user' />
+        <ChatAvatar username={receiver?.username!} />
         <div className='flex flex-col items-start'>
-          <span className='text-lg'>Test user</span>
-          <span className='text-sm text-gray-500'>🟢 Online</span>
+          <span className='text-lg'>{receiver?.username}</span>
+          <span className='text-sm text-gray-500'>
+            {receiver?.is_online ? '🟢 Online' : 'Offline'}
+          </span>
         </div>
       </header>
     </>

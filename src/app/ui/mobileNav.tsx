@@ -5,11 +5,6 @@ import { Button } from 'flowbite-react';
 import Link from 'next/link';
 import { buttonPrimary } from './buttonTheme';
 
-type MobileNavProps = {
-  show: boolean;
-  onClose: Function;
-};
-
 export default function MobileNav() {
   const [showSidenav, setShowSidenav] = useState(false);
 
@@ -37,14 +32,15 @@ export default function MobileNav() {
 
       {showSidenav && (
         <>
-          <div className='absolute min-h-[120vh] min-w-[100vw] z-2 bg-black opacity-25 top-0 left-0'></div>
-          {/* Back button */}
+          {/* Background layer */}
+          <div className='absolute min-h-[120vh] min-w-[100vw] z-[99] bg-black opacity-25 top-0 left-0'></div>
           <div
             onClick={() => setShowSidenav(false)}
-            className='absolute top-0 right-0 min-h-[120vh] w-[200px] bg-whitebg py-5 px-3'
+            className='absolute top-0 right-0 min-h-[120vh] z-[100] w-[200px] bg-whitebg py-5 px-3'
           >
             <div className='flex justify-end'>
               <span className='hover:bg-gray-200 rounded-2xl p-2 transition'>
+                {/* Back button */}
                 <svg
                   className='w-6 h-6 text-gray-800 dark:text-white'
                   aria-hidden='true'

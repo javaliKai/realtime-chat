@@ -70,7 +70,7 @@ export default function ChatHeader() {
     // Should change to element skeleton for better UI
     return (
       <div className='text-center pt-10'>
-        <Spinner aria-label='Loading spinner' size='xl' />;
+        <Spinner aria-label='Loading spinner' size='xl' />
       </div>
     );
   }

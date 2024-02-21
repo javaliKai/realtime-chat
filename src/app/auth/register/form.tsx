@@ -2,14 +2,35 @@
 
 import { registerAction } from '@/app/lib/actions';
 import { buttonPrimary } from '@/app/ui/buttonTheme';
+import { Alert, Spinner } from 'flowbite-react';
 import { Button } from 'flowbite-react/lib/esm/components/Button';
 import Link from 'next/link';
-import { useFormState } from 'react-dom';
+import { useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
+
+function Submit() {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      pill
+      theme={buttonPrimary}
+      color='blue'
+      className='w-full'
+      // disabled={pending}
+      type='submit'
+      disabled={pending}
+    >
+      {pending ? <Spinner size='md' /> : 'Register'}
+    </Button>
+  );
+}
 
 export default function RegisterForm() {
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const registerHandler = async (_: string | undefined, formData: FormData) => {
     const registerRes = await registerAction(formData);
     if (registerRes?.error) return `Register failed: ${registerRes!.error}`;
+    setIsSuccess(true);
     return 'Register success!';
   };
 
@@ -20,7 +41,11 @@ export default function RegisterForm() {
       action={formAction}
       className='flex flex-col w-full h-full pb-6 text-center bg-white rounded-3xl'
     >
-      {errorMesage}
+      <div className='mb-3'>
+        {errorMesage && (
+          <Alert color={isSuccess ? 'success' : 'failure'}>{errorMesage}</Alert>
+        )}
+      </div>{' '}
       <h3 className='mb-3 text-4xl font-extrabold text-dark-grey-900'>
         Create Account
       </h3>
@@ -69,16 +94,7 @@ export default function RegisterForm() {
         placeholder='Enter password again'
         className='flex items-center w-full px-5 py-4 mb-5 mr-2 text-sm font-medium outline-none focus:bg-grey-400 placeholder:text-grey-700 bg-grey-200 text-dark-grey-900 rounded-2xl'
       />
-      <Button
-        pill
-        theme={buttonPrimary}
-        color='blue'
-        className='w-full'
-        // disabled={pending}
-        type='submit'
-      >
-        Create Account
-      </Button>
+      <Submit />
       <p className='text-sm leading-relaxed text-grey-900'>
         Already have an account?{' '}
         <Link href='/auth/login' className='font-bold text-grey-700'>
