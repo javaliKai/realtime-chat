@@ -1,9 +1,7 @@
 import { getUser, openChatRoom } from '@/app/lib/actions';
-import { getUserSession, protectedPage } from '../../lib/helpers';
-import ChatActions from './chatActions';
-import ChatBody from './chatBody';
-import ChatTag from './chatTag';
+import { protectedPage } from '../../lib/helpers';
 import { notFound } from 'next/navigation';
+import ChatSocket from './chatSocket';
 
 type PageProps = {
   params: {
@@ -26,13 +24,15 @@ export default async function Chat({ params }: PageProps) {
 
   return (
     <>
-      {/* Chat Tag (Header) */}
-      <ChatTag receiver={chatRoom.receiver} />
-      <hr />
-      {/* Chat Body */}
-      <ChatBody messages={chatRoom.messages} currentUserId={userId} />
-      {/* Chat Actions */}
-      <ChatActions chatRoomId={chatRoom.id} />
+      <ChatSocket
+        chatProps={{
+          receiver: chatRoom.receiver,
+          messages: chatRoom.messages,
+          currentUserId: userId,
+          targetUserId: params.targetUserId,
+          chatRoomId: chatRoom.id,
+        }}
+      />
     </>
   );
 }

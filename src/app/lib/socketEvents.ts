@@ -1,0 +1,6 @@
+export const JOIN_ROOM = 'JOIN_ROOM';
+export const SEND_MESSAGE = 'SEND_MESSAGE';
+export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE';
+export const POPULATE_CHAT = 'POPULATE_CHAT';
+export const MESSAGE_SUCCESS = 'MESSAGE_SUCCESS';
+export const MESSAGE_FAILED = 'MESSAGE_FAILED';

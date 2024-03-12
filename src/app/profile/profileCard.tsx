@@ -79,8 +79,8 @@ export default function ProfileCard({ user }: ProfileCardProps) {
   };
 
   const statusEditHandler = async () => {
-    setUsernameEditing(false);
-    setUsernameModal(false);
+    setStatusEditing(false);
+    setStatusModal(false);
 
     const updateResponse = await updateUserStatus(userId, statusInput.trim());
     const updateSuccess = updateResponse.success;
@@ -160,7 +160,7 @@ export default function ProfileCard({ user }: ProfileCardProps) {
             </h3>
             <div className='flex justify-center gap-4'>
               <Button color='success' onClick={() => usernameEditHandler()}>
-                Yes, I'm sure
+                Yes, sure
               </Button>
               <Button color='gray' onClick={() => setUsernameModal(false)}>
                 No, cancel
@@ -202,7 +202,7 @@ export default function ProfileCard({ user }: ProfileCardProps) {
             </h3>
             <div className='flex justify-center gap-4'>
               <Button color='success' onClick={() => statusEditHandler()}>
-                Yes, I'm sure
+                Yes, sure
               </Button>
               <Button color='gray' onClick={() => setStatusModal(false)}>
                 No, cancel

@@ -60,10 +60,10 @@ export default function ChatCard({ chatRoomData }: ChatCardProps) {
     };
 
     populateChatCardData();
-  }, []);
+  }, [chatRoomData]);
 
   if (loading) {
-    return <></>;
+    return <span>Loading...</span>;
   }
 
   return (

@@ -1,6 +1,12 @@
 'use client';
 import { Message } from '@/app/lib/definitions';
 import ChatItem from './chatItem';
+import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+import dotenv from 'dotenv';
+import { Socket } from 'socket.io';
+import { Button, TextInput } from 'flowbite-react';
+dotenv.config();
 
 type ChatBodyProps = {
   messages: { [key: string]: Message[] };
@@ -8,6 +14,7 @@ type ChatBodyProps = {
 };
 
 export default function ChatBody({ messages, currentUserId }: ChatBodyProps) {
+  const [socket, setSocket] = useState<Socket | null>(null);
   const chatMessagesUi: React.ReactNode[] = [];
 
   for (const date in messages) {
@@ -49,7 +56,7 @@ export default function ChatBody({ messages, currentUserId }: ChatBodyProps) {
 
   return (
     <>
-      <div className='mt-5 mb-[7rem] mx-2 max-h-[70%] overflow-auto'>
+      <div className='mt-5 mb-[3rem] mx-2 max-h-[70%] overflow-auto'>
         {chatMessagesUi}
       </div>
     </>

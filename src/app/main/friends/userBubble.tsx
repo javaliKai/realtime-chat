@@ -37,7 +37,7 @@ export default function UserBubble({ user }: UserBubbleProps) {
     };
 
     isFriendCheck();
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     const alertTimeout = setTimeout(() => {

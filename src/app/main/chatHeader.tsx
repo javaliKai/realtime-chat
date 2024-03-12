@@ -64,7 +64,7 @@ export default function ChatHeader() {
 
     friendReqResponse();
     getUserObjResponse();
-  }, []);
+  }, [router]);
 
   if (stateLoading) {
     // Should change to element skeleton for better UI

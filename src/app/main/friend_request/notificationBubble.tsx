@@ -63,7 +63,7 @@ export default function NotificationBubble({
     return () => {
       clearTimeout(feedbackTimeout);
     };
-  }, [errorMsg, successMsg, showAlert]);
+  }, [errorMsg, successMsg, showAlert, onActionApplied]);
 
   return (
     <>

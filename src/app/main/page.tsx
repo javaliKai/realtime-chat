@@ -31,7 +31,7 @@ export default function Page() {
     <>
       {errorMsg && (
         <Alert className='fixed right-3 top-[2rem]' color='failure'>
-          {errorMsg} Helloo
+          {errorMsg}
         </Alert>
       )}
       <div>

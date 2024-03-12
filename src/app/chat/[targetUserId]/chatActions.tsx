@@ -5,12 +5,19 @@ import { useRouter } from 'next/navigation';
 import { Alert, Button, TextInput, Textarea } from 'flowbite-react';
 import { buttonAction, buttonPrimary } from '../../ui/buttonTheme';
 import { getUser, sendMessage } from '@/app/lib/actions';
+import { Socket } from 'socket.io-client';
+import {
+  MESSAGE_FAILED,
+  MESSAGE_SUCCESS,
+  SEND_MESSAGE,
+} from '@/app/lib/socketEvents';
 
 type ChatActionProps = {
   chatRoomId: string;
+  socket: Socket | undefined;
 };
 
-export default function ChatActions({ chatRoomId }: ChatActionProps) {
+export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
   const router = useRouter();
   const [messageInput, setMessageInput] = useState<string>('');
   const [sendingMessage, setSendingMessage] = useState<boolean>(false);
@@ -24,24 +31,47 @@ export default function ChatActions({ chatRoomId }: ChatActionProps) {
   };
 
   const sendMessageHandler = async () => {
-    setSendingMessage(true);
-    // const messageResult = await sendMessage('1231231221', messageInput);
-    const creatorUsername = (await getUser())?.username;
-    const messageResult = await sendMessage(
-      chatRoomId,
-      creatorUsername!,
-      messageInput
-    );
-    if (!messageResult.success) {
-      setSendingMessage(false);
-      setErrorMsg(messageResult.error);
-      return;
-    }
-    setMessageInput('');
-    setSendingMessage(false);
+    // setSendingMessage(true);
+    // // const messageResult = await sendMessage('1231231221', messageInput);
+    // const creatorUsername = (await getUser())?.username;
+    // const messageResult = await sendMessage(
+    //   chatRoomId,
+    //   creatorUsername!,
+    //   messageInput
+    // );
+    // if (!messageResult.success) {
+    //   setSendingMessage(false);
+    //   setErrorMsg(messageResult.error);
+    //   return;
+    // }
+    // setMessageInput('');
+    // setSendingMessage(false);
 
-    router.refresh();
+    // router.refresh(); // i think this what causes the bug. Change it to refetch context instead
+    if (socket) {
+      const user = await getUser();
+      const creatorUsername = user!.username;
+      const senderUserId = user!.id;
+      socket.emit(SEND_MESSAGE, {
+        chatRoomId,
+        creatorUsername,
+        text: messageInput,
+        senderUserId,
+      });
+    }
   };
+
+  useEffect(() => {
+    socket?.on(MESSAGE_SUCCESS, (_) => {
+      setMessageInput('');
+      setSendingMessage(false);
+    });
+    socket?.on(MESSAGE_FAILED, (_) => {
+      console.log('here');
+      setErrorMsg('Fail to send message.');
+      setSendingMessage(false);
+    });
+  }, []);
 
   useEffect(() => {
     const errorTimeout = setTimeout(() => {
@@ -59,7 +89,8 @@ export default function ChatActions({ chatRoomId }: ChatActionProps) {
           {errorMsg}
         </Alert>
       )}
-      <div className='w-full px-3 py-3 fixed bottom-0 border-y-2'>
+      {/* <div className='w-full px-3 py-3 fixed bottom-0 border-y-2 bg-whitebg'> */}
+      <div className='w-full px-3 py-3 sticky bottom-0 border-y-2 bg-whitebg'>
         <div className='flex gap-5 items-center'>
           <div className='flex items-center'>
             {/* Share file icon */}
