@@ -1,13 +1,16 @@
 'use client';
-import { Message } from '@/app/lib/definitions';
-import ChatItem from './chatItem';
+import { GroupMessage } from '@/app/lib/definitions';
+import GroupChatItem from './groupChatItem';
 
-type ChatBodyProps = {
-  messages: { [key: string]: Message[] };
+type GroupChatBodyProps = {
+  messages: { [key: string]: GroupMessage[] };
   currentUserId: string | undefined;
 };
 
-export default function ChatBody({ messages, currentUserId }: ChatBodyProps) {
+export default function GroupChatBody({
+  messages,
+  currentUserId,
+}: GroupChatBodyProps) {
   const chatMessagesUi: React.ReactNode[] = [];
 
   for (const date in messages) {
@@ -36,7 +39,7 @@ export default function ChatBody({ messages, currentUserId }: ChatBodyProps) {
     // push all messages record for the current date into the messages UI
     messages[date].forEach((message) => {
       chatMessagesUi.push(
-        <ChatItem
+        <GroupChatItem
           key={message.id}
           type={message.creator_id === currentUserId ? 'sender' : 'receiver'}
           messageType={message.type}

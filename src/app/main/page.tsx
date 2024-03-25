@@ -11,7 +11,6 @@ import { Alert } from 'flowbite-react';
 export default function Page() {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  console.log(chatRooms);
 
   useEffect(() => {
     // get all chat rooms during initial render

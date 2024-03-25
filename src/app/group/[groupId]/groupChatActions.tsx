@@ -1,33 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Alert, Button, TextInput, Textarea } from 'flowbite-react';
-import { buttonAction, buttonPrimary } from '../../ui/buttonTheme';
-import { getUser, sendMessage } from '@/app/lib/actions';
-import { Socket } from 'socket.io-client';
+import { getUser, sendGroupMessage } from '@/app/lib/actions';
 import {
-  MESSAGE_FAILED,
-  MESSAGE_SUCCESS,
-  SEND_MESSAGE,
+  GROUP_MESSAGE_FAILED,
+  GROUP_MESSAGE_SUCCESS,
+  SEND_GROUP_MESSAGE,
 } from '@/app/lib/socketEvents';
-import FileUpload from './fileUpload';
+import { buttonAction } from '@/app/ui/buttonTheme';
+import { Alert, Button, Textarea } from 'flowbite-react';
+import { useEffect, useState } from 'react';
+import { Socket } from 'socket.io-client';
 
-type ChatActionProps = {
-  chatRoomId: string;
+type GroupChatActionsProps = {
+  groupId: string;
   socket: Socket | undefined;
 };
 
-export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
+export default function GroupChatActions({
+  groupId,
+  socket,
+}: GroupChatActionsProps) {
   const [messageInput, setMessageInput] = useState<string>('');
   const [sendingMessage, setSendingMessage] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  const mesageInputChangeHandler = (
+  const messageInputChangeHandler = (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
-    const text = e.target.value;
-    setMessageInput(text);
+    setMessageInput(e.target.value);
   };
 
   const sendMessageHandler = async () => {
@@ -36,8 +36,8 @@ export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
       const user = await getUser();
       const creatorUsername = user!.username;
       const senderUserId = user!.id;
-      socket.emit(SEND_MESSAGE, {
-        chatRoomId,
+      socket.emit(SEND_GROUP_MESSAGE, {
+        groupId,
         creatorUsername,
         text: messageInput,
         senderUserId,
@@ -46,11 +46,11 @@ export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
   };
 
   useEffect(() => {
-    socket?.on(MESSAGE_SUCCESS, (_) => {
+    socket?.on(GROUP_MESSAGE_SUCCESS, (_) => {
       setMessageInput('');
       setSendingMessage(false);
     });
-    socket?.on(MESSAGE_FAILED, (_) => {
+    socket?.on(GROUP_MESSAGE_FAILED, (_) => {
       setErrorMsg('Fail to send message.');
       setSendingMessage(false);
     });
@@ -75,10 +75,10 @@ export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
       {/* <div className='w-full px-3 py-3 fixed bottom-0 border-y-2 bg-whitebg'> */}
       <div className='w-full px-3 py-3 sticky bottom-0 border-y-2 bg-whitebg'>
         <div className='flex gap-5 items-center'>
-          <FileUpload chatRoomId={chatRoomId} />
+          {/* <FileUpload chatRoomId={chatRoomId} /> */}
           <div className='w-full'>
             <Textarea
-              onChange={(e) => mesageInputChangeHandler(e)}
+              onChange={(e) => messageInputChangeHandler(e)}
               value={messageInput}
               placeholder='Type a message'
               rows={2}

@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
-import ChatAvatar from '../../ui/chatAvatar';
-import axios from 'axios';
-import FileChatItem from './fileChatItem';
+import FileChatItem from '@/app/chat/[targetUserId]/fileChatItem';
+import ChatAvatar from '@/app/ui/chatAvatar';
 
-type ChatItemProps = {
+type GroupChatItemProps = {
   message: string;
   type: 'receiver' | 'sender';
   messageType: string;
@@ -13,13 +11,13 @@ type ChatItemProps = {
   creatorUsername: string;
 };
 
-export default function ChatItem({
+export default function GroupChatItem({
   message,
   type,
   messageType,
   timestamp,
   creatorUsername,
-}: ChatItemProps) {
+}: GroupChatItemProps) {
   // constructing timestamp using 24 hour system
   let timeText = '';
   const timestampDateObj = new Date(timestamp);
@@ -56,7 +54,6 @@ export default function ChatItem({
         ) : (
           <p className='break-words'>{message}</p>
         )}
-        {/* {messageContent} */}
         <p className='text-xs text-right text-gray-400'>{timeText}</p>
       </div>
     </div>

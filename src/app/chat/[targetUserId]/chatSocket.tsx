@@ -14,7 +14,8 @@ import {
   SEND_MESSAGE,
 } from '@/app/lib/socketEvents';
 import { Button, Spinner } from 'flowbite-react';
-import ChatContext, { ChatContextProvider } from '@/app/lib/store/chatContext';
+import ChatContext, { ChatContextProvider } from '@/app/store/chatContext';
+import { EdgeStoreProvider } from '@/app/lib/edgestore';
 
 type ChatSocketProps = {
   chatProps: {
@@ -34,13 +35,15 @@ type ChatSocketComponentProps = {
 
 export default function ChatSocket({ chatProps }: ChatSocketProps) {
   return (
-    <ChatContextProvider>
-      <ChatSocketComponent
-        currentUserId={chatProps.currentUserId}
-        targetUserId={chatProps.targetUserId}
-        chatRoomId={chatProps.chatRoomId}
-      />
-    </ChatContextProvider>
+    <EdgeStoreProvider>
+      <ChatContextProvider>
+        <ChatSocketComponent
+          currentUserId={chatProps.currentUserId}
+          targetUserId={chatProps.targetUserId}
+          chatRoomId={chatProps.chatRoomId}
+        />
+      </ChatContextProvider>
+    </EdgeStoreProvider>
   );
 }
 
@@ -61,8 +64,8 @@ const ChatSocketComponent = ({
       console.log(`Socket connected from ID: ${socket.id}`);
       socket.emit(JOIN_ROOM, { chatRoomId, currentUserId, targetUserId });
 
-      // Populate chat rooms
-      chatContext.getChatRoom(targetUserId!);
+      // // Populate chat rooms
+      // chatContext.getChatRoom(targetUserId!);
     });
 
     socket.on(POPULATE_CHAT, async (_) => {

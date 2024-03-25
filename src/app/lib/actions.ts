@@ -1,29 +1,26 @@
 /** This file contains the controller which will be consumed by the client */
 'use server';
 
-import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { serialize } from 'cookie';
 import { cookies } from 'next/headers';
 import dotenv from 'dotenv';
-import { sql } from '@vercel/postgres';
 import {
   ChatRoom,
-  Friend,
   FriendData,
-  FriendRequest,
   FriendRequestInfo,
   GetChatCardDataResponse,
   GetChatRoomsResponse,
+  Group,
   Message,
   OpenChatRoomResponse,
   User,
 } from './definitions';
-import { strict } from 'assert';
 import { getUserSession } from './helpers';
 import connectDB from './db';
 import { unstable_noStore } from 'next/cache';
+import { customAlphabet } from 'nanoid';
 
 dotenv.config();
 
@@ -575,7 +572,7 @@ export async function openChatRoom(targetUserId: string) {
     // if no chatroom is found, add a new one and pass an empty array of messages
     if (!chatRoom) {
       await client.query(
-        "INSERT INTO chatrooms(type, user_id_1, user_id_2) VALUES ('personal', $1, $2)",
+        'INSERT INTO chatrooms(user_id_1, user_id_2) VALUES ($1, $2)',
         [userId, targetUserId]
       );
 
@@ -736,6 +733,250 @@ export async function getChatCardData(chatRoomData: ChatRoom) {
   } catch (error) {
     console.error('Error while getting chat card data: ', error);
     result.error = 'Cannot get chat card data at the moment.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function createGroup(leader: string, groupName: string) {
+  unstable_noStore();
+
+  const result = {
+    success: false,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    // generate 6 chars unique slug for invitation purpose
+    const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+    const groupSlug = customAlphabet(validChars, 6)();
+
+    // insert new group to db -- note: 'leader' is the ID of the user that initiates the group creation
+    const insertResult = await client.query(
+      'INSERT INTO groups(group_slug, leader, group_name) VALUES($1, $2, $3) RETURNING id',
+      [groupSlug, leader, groupName]
+    );
+
+    const newGroupId = insertResult.rows[0].id;
+
+    // add the group leader to the group_members
+    await client.query(
+      'INSERT INTO group_members(group_id, user_id) VALUES ($1, $2)',
+      [newGroupId, leader]
+    );
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while creating a group: ', error);
+    result.error = 'Cannot create a group at the moment.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function getChatGroups() {
+  const result = {
+    groups: [] as Group[],
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+
+    // get all groups that has the current user as member
+    const userGroupQuery = await client.query(
+      'SELECT group_id FROM group_members WHERE user_id=$1',
+      [userId]
+    );
+
+    // structure: [ {group_id: '...' } , ...]
+    const userGroupList = userGroupQuery.rows;
+
+    // iterate over and get the group info from db
+    for (const group of userGroupList) {
+      const groupQuery = await client.query(
+        'SELECT * FROM groups WHERE id=$1',
+        [group.group_id]
+      );
+      const groupObj = groupQuery.rows[0];
+      result.groups.push(groupObj);
+    }
+  } catch (error) {
+    console.error('Error while getting user groups: ', error);
+    result.error = 'Cannot get chat groups at the moment.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function openGroupRoom(groupId: string) {
+  // things needed: group info in groups table, how many members
+  const result = {
+    group: {} as Group,
+    messages: {},
+    totalMember: 0,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+
+    // getting group info
+    const groupQuery = await client.query('SELECT * FROM groups WHERE id=$1', [
+      groupId,
+    ]);
+    const groupData = groupQuery.rows[0];
+    if (groupQuery.rowCount !== 0) result.group = groupData;
+
+    // getting how many members in the group
+    const memberQuery = await client.query(
+      'SELECT * FROM group_members WHERE group_id=$1',
+      [groupId]
+    );
+    const memberCount = memberQuery.rowCount;
+    result.totalMember = memberCount;
+
+    // Getting group messages
+    const messagesQuery = await client.query(
+      'SELECT * FROM group_messages WHERE chatroom_id=$1 ORDER BY timestamp',
+      [groupId]
+    );
+    // modify the data to be divided by date
+    const messages = messagesQuery.rows;
+    // message will be grouped by date
+    const groupedMessages: { [key: string]: Message[] } = {};
+    messages.forEach((message) => {
+      const messageDate = new Date(message.timestamp);
+      const groupKey = `${messageDate.getFullYear()}/${
+        messageDate.getMonth() + 1
+      }/${messageDate.getDate()}`;
+
+      // if the date is in the group message, just add to that array, otherwise make a new one
+      if (groupedMessages.hasOwnProperty(groupKey)) {
+        groupedMessages[groupKey].push(message);
+      } else {
+        groupedMessages[groupKey] = [message];
+      }
+    });
+    result.messages = groupedMessages;
+  } catch (error) {
+    console.error('Error while opening group room: ', error);
+    result.error = 'Cannot get group room info!';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function joinGroup(groupSlug: string) {
+  const result = {
+    success: false,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+
+    // trade groupSlug for groupId
+    const groupQuery = await client.query(
+      'SELECT id FROM groups WHERE group_slug=$1',
+      [groupSlug]
+    );
+
+    // check whether group slug exist
+    if (groupQuery.rowCount === 0) {
+      result.error = 'Invalid group slug.';
+      return result;
+    }
+
+    const groupId = groupQuery.rows[0].id;
+    // check whether user is already in the group
+    const memberQuery = await client.query(
+      'SELECT * FROM group_members WHERE group_id=$1 AND user_id=$2',
+      [groupId, userId]
+    );
+    const isJoined = memberQuery.rowCount > 0;
+    if (isJoined) {
+      result.error = 'Already in the group!';
+      return result;
+    }
+
+    // insert record to group_members
+    await client.query(
+      'INSERT INTO group_members(group_id, user_id) VALUES ($1, $2)',
+      [groupId, userId]
+    );
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while joining a group: ', error);
+    result.error = 'Fail to join group.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+// Move soon to server
+export async function sendGroupMessage(
+  groupId: string,
+  creatorUsername: string,
+  text: string
+) {
+  unstable_noStore();
+
+  const result = {
+    success: false,
+    error: '',
+  };
+  const { client, endPool } = await connectDB();
+  try {
+    const userSession = getUserSession();
+    const userId = userSession?.userId;
+
+    console.log(groupId, creatorUsername, text);
+
+    await client.query(
+      'INSERT INTO group_messages(chatroom_id, creator_id, creator_username, text) VALUES ($1, $2, $3, $4)',
+      [groupId, userId, creatorUsername, text]
+    );
+    // grab the newly inserted data ID
+    const topMessage: Message = (
+      await client.query(
+        'SELECT * FROM group_messages WHERE chatroom_id=$1 ORDER BY timestamp DESC',
+        [groupId]
+      )
+    ).rows[0];
+
+    // record the topmost messsage to the chatrooms table
+    await client.query('UPDATE groups SET last_message=$1 WHERE id=$2', [
+      topMessage.id,
+      groupId,
+    ]);
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while sending message to a group: ', error);
+    result.error = 'Fail to send message!';
   } finally {
     client.release();
 

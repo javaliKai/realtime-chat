@@ -53,7 +53,10 @@ export interface Message {
   creator_username: string;
   text: string;
   timestamp: Date;
+  type: string;
 }
+
+export interface GroupMessage extends Message {}
 
 export interface OpenChatRoomResponse {
   id: string;
@@ -73,5 +76,26 @@ export interface GetChatCardDataResponse {
   lastUsername: string;
   lastMessageTxt: string;
   timestamp: Date | undefined;
+  error: string;
+}
+
+export interface AlertState {
+  type: 'success' | 'failure';
+  message: string;
+  show: boolean;
+}
+
+export interface Group {
+  id: string;
+  group_slug: string;
+  leader: string;
+  group_name: string;
+  last_message: string | null;
+}
+
+export interface OpenGroupRoomResponse {
+  group: Group;
+  messages: { [key: string]: GroupMessage[] };
+  totalMember: number;
   error: string;
 }

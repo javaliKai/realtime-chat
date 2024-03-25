@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useState } from 'react';
-import { getUser as getUserAction, openChatRoom } from '../actions';
-import { Message, OpenChatRoomResponse, User } from '../definitions';
+import { getUser as getUserAction, openChatRoom } from '../lib/actions';
+import { Message, OpenChatRoomResponse, User } from '../lib/definitions';
 
 type ChatContextType = {
   receiver: User | undefined;
@@ -10,6 +10,7 @@ type ChatContextType = {
   chatRoomId: string;
   loading: boolean;
   getChatRoom: (userId: string) => Promise<boolean> | void;
+  targetUserId: string;
 };
 
 const ChatContext = createContext<ChatContextType>({
@@ -17,7 +18,8 @@ const ChatContext = createContext<ChatContextType>({
   messages: {},
   chatRoomId: '',
   loading: true,
-  getChatRoom: () => {},
+  getChatRoom: (userId) => {},
+  targetUserId: '',
 });
 
 export const ChatContextProvider = ({
@@ -30,28 +32,27 @@ export const ChatContextProvider = ({
     messages: { [key: string]: Message[] };
     chatRoomId: string;
     loading: boolean;
+    targetUserId: string;
   }>({
     receiver: undefined,
     messages: {},
     chatRoomId: '',
     loading: true,
+    targetUserId: '',
   });
 
   const getChatRoom = async (userId: string) => {
-    // Todo: call action from socket server instead
-
     const chatRoom = await openChatRoom(userId);
-    console.log(chatRoom);
     if (chatRoom.error) {
       return false;
     }
 
-    setData((prevState) => {
+    setData((_) => {
       return {
-        ...prevState,
         receiver: chatRoom.receiver,
         messages: chatRoom.messages,
         chatRoomId: chatRoom.id,
+        targetUserId: userId,
         loading: false,
       };
     });
@@ -62,10 +63,7 @@ export const ChatContextProvider = ({
   return (
     <ChatContext.Provider
       value={{
-        receiver: data.receiver,
-        messages: data.messages,
-        chatRoomId: data.chatRoomId,
-        loading: data.loading,
+        ...data,
         getChatRoom,
       }}
     >

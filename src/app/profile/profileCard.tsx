@@ -13,7 +13,7 @@ import {
 } from 'flowbite-react';
 import ChatAvatar from '../ui/chatAvatar';
 import { buttonPrimary } from '../ui/buttonTheme';
-import { updateUserStatus, updateUsername } from '../lib/actions';
+import { logoutAction, updateUserStatus, updateUsername } from '../lib/actions';
 import { User } from '../lib/definitions';
 
 type ProfileCardProps = {
@@ -217,7 +217,7 @@ export default function ProfileCard({ user }: ProfileCardProps) {
           <p className='mt-3 text-xl font-bold'>{username}</p>
           <p className='text-xs text-gray-500'>{status}</p>
         </div>
-        <div>
+        <div className='mb-3'>
           <form>
             <div className='mb-2 block'>
               <Label
@@ -317,6 +317,9 @@ export default function ProfileCard({ user }: ProfileCardProps) {
             </div>
           </form>
         </div>
+        <Button onClick={() => logoutAction()} color='failure'>
+          Sign Out
+        </Button>
       </Card>
     </>
   );
