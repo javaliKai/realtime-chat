@@ -1,6 +1,6 @@
 'use client';
 
-import { getUser, sendGroupMessage } from '@/app/lib/actions';
+import { getUser } from '@/app/lib/actions';
 import {
   GROUP_MESSAGE_FAILED,
   GROUP_MESSAGE_SUCCESS,
@@ -10,6 +10,7 @@ import { buttonAction } from '@/app/ui/buttonTheme';
 import { Alert, Button, Textarea } from 'flowbite-react';
 import { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
+import GroupFileUpload from './groupFileUpload';
 
 type GroupChatActionsProps = {
   groupId: string;
@@ -75,7 +76,7 @@ export default function GroupChatActions({
       {/* <div className='w-full px-3 py-3 fixed bottom-0 border-y-2 bg-whitebg'> */}
       <div className='w-full px-3 py-3 sticky bottom-0 border-y-2 bg-whitebg'>
         <div className='flex gap-5 items-center'>
-          {/* <FileUpload chatRoomId={chatRoomId} /> */}
+          <GroupFileUpload />
           <div className='w-full'>
             <Textarea
               onChange={(e) => messageInputChangeHandler(e)}

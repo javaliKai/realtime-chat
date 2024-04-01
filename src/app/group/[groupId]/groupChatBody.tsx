@@ -1,15 +1,18 @@
 'use client';
 import { GroupMessage } from '@/app/lib/definitions';
 import GroupChatItem from './groupChatItem';
+import { Socket } from 'socket.io-client';
 
 type GroupChatBodyProps = {
   messages: { [key: string]: GroupMessage[] };
   currentUserId: string | undefined;
+  socket: Socket;
 };
 
 export default function GroupChatBody({
   messages,
   currentUserId,
+  socket,
 }: GroupChatBodyProps) {
   const chatMessagesUi: React.ReactNode[] = [];
 
@@ -46,6 +49,7 @@ export default function GroupChatBody({
           message={message.text}
           creatorUsername={message.creator_username}
           timestamp={message.timestamp}
+          socket={socket}
         />
       );
     });

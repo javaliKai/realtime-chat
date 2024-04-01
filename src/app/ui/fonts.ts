@@ -1,6 +1,6 @@
 import { Poppins } from 'next/font/google';
 
 export const poppins = Poppins({
-  subsets: ['devanagari'],
+  subsets: [],
   weight: ['200', '400', '700'],
 });

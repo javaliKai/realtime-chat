@@ -99,3 +99,16 @@ export interface OpenGroupRoomResponse {
   totalMember: number;
   error: string;
 }
+
+export interface GroupPoll {
+  id: string;
+  group_id: string;
+  title: string;
+  creator_id: string;
+  creator_username: string;
+  timestamp: Date;
+  // non-snake case indicates custom properties defined outside the db definitions
+  totalRespondent: number;
+  agreeCount: number;
+  disagreeCount: number;
+}

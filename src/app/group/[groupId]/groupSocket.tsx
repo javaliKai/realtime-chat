@@ -10,6 +10,7 @@ import { JOIN_GROUP_ROOM, POPULATE_GROUP_CHAT } from '@/app/lib/socketEvents';
 import GroupChatContext, {
   GroupChatContextProvider,
 } from '@/app/store/groupContext';
+import { EdgeStoreProvider } from '@/app/lib/edgestore';
 
 type GroupSocketProps = {
   group: Group;
@@ -27,12 +28,14 @@ export default function GroupSocket({
   return (
     <>
       <GroupChatContextProvider>
-        <GroupSocketComponent
-          group={group}
-          totalMember={totalMember}
-          currentUserId={currentUserId}
-          messages={messages}
-        />
+        <EdgeStoreProvider>
+          <GroupSocketComponent
+            group={group}
+            totalMember={totalMember}
+            currentUserId={currentUserId}
+            messages={messages}
+          />
+        </EdgeStoreProvider>
       </GroupChatContextProvider>
     </>
   );
@@ -77,6 +80,7 @@ const GroupSocketComponent = ({
         <GroupChatBody
           currentUserId={currentUserId}
           messages={groupChatContext.messages}
+          socket={socket!}
         />
       </div>
       <GroupChatActions groupId={group.id} socket={socket} />

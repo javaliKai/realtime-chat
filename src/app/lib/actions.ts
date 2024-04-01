@@ -13,6 +13,7 @@ import {
   GetChatCardDataResponse,
   GetChatRoomsResponse,
   Group,
+  GroupPoll,
   Message,
   OpenChatRoomResponse,
   User,
@@ -936,50 +937,143 @@ export async function joinGroup(groupSlug: string) {
   }
 }
 
-// Move soon to server
-export async function sendGroupMessage(
-  groupId: string,
-  creatorUsername: string,
-  text: string
-) {
-  unstable_noStore();
-
+// move soon to server
+export async function createPoll(title: string, groupId: string) {
   const result = {
     success: false,
     error: '',
   };
+
   const { client, endPool } = await connectDB();
+
   try {
-    const userSession = getUserSession();
-    const userId = userSession?.userId;
+    const user = await getUser();
+    const userId = user?.id;
+    const creatorUsername = user?.username;
 
-    console.log(groupId, creatorUsername, text);
-
+    // record to group_polls table
     await client.query(
-      'INSERT INTO group_messages(chatroom_id, creator_id, creator_username, text) VALUES ($1, $2, $3, $4)',
-      [groupId, userId, creatorUsername, text]
+      'INSERT INTO group_polls(group_id, title, creator_id, creator_username) VALUES ($1, $2, $3, $4)',
+      [groupId, title, userId, creatorUsername]
     );
+
     // grab the newly inserted data ID
-    const topMessage: Message = (
+    const latestPoll = (
       await client.query(
-        'SELECT * FROM group_messages WHERE chatroom_id=$1 ORDER BY timestamp DESC',
+        'SELECT id FROM group_polls WHERE group_id=$1 ORDER BY timestamp DESC',
         [groupId]
       )
     ).rows[0];
 
-    // record the topmost messsage to the chatrooms table
-    await client.query('UPDATE groups SET last_message=$1 WHERE id=$2', [
-      topMessage.id,
-      groupId,
-    ]);
+    // record the poll to the group_messages table
+    await client.query(
+      'INSERT INTO group_messages(chatroom_id, creator_id, creator_username, text, type) VALUES ($1, $2, $3, $4, $5)',
+      [groupId, userId, creatorUsername, latestPoll.id, 'poll']
+    );
 
     result.success = true;
   } catch (error) {
-    console.error('Error while sending message to a group: ', error);
-    result.error = 'Fail to send message!';
+    console.error('Error while creating a poll: ', error);
+    result.error = 'Fail to create a group poll.';
   } finally {
     client.release();
+    endPool();
+    return result;
+  }
+}
 
+export async function getPollInfo(pollId: string, groupId: string) {
+  const result = {
+    pollObj: {} as GroupPoll,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+    const creatorUsername = user?.username;
+
+    const pollQuery = await client.query(
+      'SELECT * FROM group_polls WHERE id=$1 AND group_id=$2',
+      [pollId, groupId]
+    );
+    const pollData = pollQuery.rows[0];
+
+    // get the total respondent, agreeCount, and disagreeCount
+    const totalRespondent = (
+      await client.query(
+        'SELECT * FROM group_poll_responses WHERE poll_id=$1',
+        [pollId]
+      )
+    ).rowCount;
+    const agreeCount = (
+      await client.query(
+        'SELECT * FROM group_poll_responses WHERE poll_id=$1 AND is_agree=true',
+        [pollId]
+      )
+    ).rowCount;
+    const disagreeCount = (
+      await client.query(
+        'SELECT * FROM group_poll_responses WHERE poll_id=$1 AND is_agree=false',
+        [pollId]
+      )
+    ).rowCount;
+
+    result.pollObj = {
+      ...pollData,
+      totalRespondent,
+      agreeCount,
+      disagreeCount,
+    };
+  } catch (error) {
+    console.error('Error while getting a poll: ', error);
+    result.error = 'Fail to retrieve poll information.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function submitVote(pollId: string, decision: boolean) {
+  const result = {
+    success: false,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    const user = await getUser();
+    const userId = user?.id;
+
+    // reject vote if the user has been participated already
+    const hasVoted =
+      (
+        await client.query(
+          'SELECT * FROM group_poll_responses WHERE poll_id=$1 AND user_id=$2',
+          [pollId, userId]
+        )
+      ).rowCount > 0;
+
+    if (hasVoted) {
+      result.error = 'Can only vote one time!';
+      return result;
+    }
+
+    await client.query(
+      'INSERT INTO group_poll_responses(poll_id, user_id, is_agree) VALUES ($1, $2, $3)',
+      [pollId, userId, decision]
+    );
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while sending vote: ', error);
+    result.error = 'Fail to submit vote.';
+  } finally {
+    client.release();
     endPool();
     return result;
   }

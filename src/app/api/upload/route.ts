@@ -11,13 +11,21 @@ export async function POST(request: NextRequest) {
     const creatorUsername = data.get('creatorUsername');
     const senderUserId = data.get('senderUserId');
     const fileName = data.get('fileName');
+    const isGroup = data.get('isGroup');
 
-    // save the identifier to db
-    await client.query(
-      "INSERT INTO messages(chatroom_id, creator_id, creator_username, text, type) VALUES ($1, $2, $3, $4, 'file')",
-      [chatRoomId, senderUserId, creatorUsername, fileName]
-    );
-
+    if (isGroup === 'isGroup') {
+      const groupId = data.get('groupId');
+      await client.query(
+        "INSERT INTO group_messages(chatroom_id, creator_id, creator_username, text, type) VALUES ($1, $2, $3, $4, 'file')",
+        [groupId, senderUserId, creatorUsername, fileName]
+      );
+    } else {
+      // save the identifier to db
+      await client.query(
+        "INSERT INTO messages(chatroom_id, creator_id, creator_username, text, type) VALUES ($1, $2, $3, $4, 'file')",
+        [chatRoomId, senderUserId, creatorUsername, fileName]
+      );
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error while saving file to DB: ', error);
