@@ -5,17 +5,20 @@ import { Button } from 'flowbite-react';
 import Link from 'next/link';
 import GroupPolllModal from './groupPollModal';
 import { useState } from 'react';
+import { Socket } from 'socket.io-client';
 
 type GroupChatTagProps = {
   groupName: string;
   groupId: string;
   totalMember: number;
+  socket: Socket | undefined;
 };
 
 export default function GroupChatTag({
   groupName,
   groupId,
   totalMember,
+  socket,
 }: GroupChatTagProps) {
   const [showPollModal, setShowPollNodal] = useState<boolean>(false);
 
@@ -28,8 +31,9 @@ export default function GroupChatTag({
       <GroupPolllModal
         showPollModal={showPollModal}
         setPollModal={setPollModal}
+        socket={socket}
       />
-      <header className='min-h-[5rem] bg-whitebg sticky top-0 px-3 flex justify-between items-center'>
+      <header className='min-h-[5rem] bg-whitebg sticky top-0 px-3 flex justify-between items-center z-10'>
         <div className='flex gap-3 items-center'>
           <Link href='/main/groups' className='cursor-pointer'>
             {/* Back button */}

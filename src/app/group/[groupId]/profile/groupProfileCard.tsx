@@ -1,25 +1,28 @@
 'use client';
 
+import { Participant } from '@/app/lib/definitions';
 import { buttonPrimary } from '@/app/ui/buttonTheme';
 import ChatAvatar from '@/app/ui/chatAvatar';
-import { Button, Card, Label, TextInput } from 'flowbite-react';
+import { Button, Card, Label, ListGroup, TextInput } from 'flowbite-react';
 import { useState } from 'react';
-
-const username = 'Testing Group';
 
 type GroupProfileCardProps = {
   groupName: string;
   groupSlug: string;
+  participants: Participant[];
 };
 
 export default function GroupProfileCard({
   groupName,
   groupSlug,
+  participants,
 }: GroupProfileCardProps) {
   const [nameEdit, setNameEdit] = useState({
     isEditing: false,
     groupName,
   });
+
+  console.log(participants);
 
   return (
     <Card className='mx-5 my-10 min-h-[50vh]'>
@@ -55,27 +58,6 @@ export default function GroupProfileCard({
                 Edit Group Name
               </Button>
             )}
-
-            {/* {usernameEditing && (
-              <>
-                <Button
-                  onClick={() => setUsernameModal(true)}
-                  className='mt-3'
-                  color='success'
-                  type='button'
-                >
-                  Confirm Edit
-                </Button>
-                <Button
-                  onClick={() => setUsernameEditing(false)}
-                  color='failure'
-                  className='mt-3'
-                  type='button'
-                >
-                  Cancel
-                </Button>
-              </>
-            )} */}
           </div>
         </form>
         <div className='mt-5'>
@@ -83,6 +65,17 @@ export default function GroupProfileCard({
           <br />
           <span className='font-bold text-xl'>{groupSlug}</span>
         </div>
+      </div>
+      <div className='mt-5'>
+        <h3 className='text-lg'>Participants: </h3>
+        <ListGroup className=''>
+          {participants.map((user) => (
+            <ListGroup.Item key={user.id}>
+              <ChatAvatar username={user.username} size={50} />
+              <span className='ml-3'>{user.username}</span>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
       </div>
     </Card>
   );

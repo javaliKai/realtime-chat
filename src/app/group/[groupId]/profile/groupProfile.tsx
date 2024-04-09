@@ -1,19 +1,22 @@
 'use client';
 
-import { getUser } from '@/app/lib/actions';
-import { protectedPage } from '@/app/lib/helpers';
 import Image from 'next/image';
-import Link from 'next/link';
-import { redirect, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import GroupProfileCard from './groupProfileCard';
-import { Group } from '@/app/lib/definitions';
+import { Group, Participant } from '@/app/lib/definitions';
 
 type GroupProfileProps = {
   group: Group;
+  participants: Participant[];
 };
 
-export default function GroupProfile({ group }: GroupProfileProps) {
+export default function GroupProfile({
+  group,
+  participants,
+}: GroupProfileProps) {
   const router = useRouter();
+
+  console.log(group);
 
   return (
     <>
@@ -52,6 +55,7 @@ export default function GroupProfile({ group }: GroupProfileProps) {
       <GroupProfileCard
         groupName={group.group_name}
         groupSlug={group.group_slug}
+        participants={participants}
       />
     </>
   );

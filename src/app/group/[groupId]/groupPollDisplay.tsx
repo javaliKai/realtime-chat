@@ -2,7 +2,7 @@
 
 import { getPollInfo, getUser, submitVote } from '@/app/lib/actions';
 import { GroupPoll } from '@/app/lib/definitions';
-import { SEND_VOTE } from '@/app/lib/socketEvents';
+import { SEND_VOTE, VOTE_FAILED, VOTE_SUCCESS } from '@/app/lib/socketEvents';
 import GroupChatContext from '@/app/store/groupContext';
 import { Alert, Button, Label, Progress, Radio } from 'flowbite-react';
 import { useContext, useEffect, useState } from 'react';
@@ -35,21 +35,7 @@ export default function GroupPollDisplay({ pollId, socket }: GroupPollDisplay) {
     const decisionBoolean = selectedOption === 'agree';
 
     socket.emit(SEND_VOTE, { groupId, pollId, userId, decisionBoolean });
-
-    // const result = await submitVote(pollId, decisionBoolean);
-    // if (result.error) {
-    //   setFeedback({
-    //     type: 'failure',
-    //     message: result.error,
-    //   });
-    // } else {
-    //   setFeedback({
-    //     type: 'success',
-    //     message: 'Vote submitted!',
-    //   });
-    // }
   };
-
   useEffect(() => {
     const getPoll = async () => {
       const result = await getPollInfo(pollId, groupId);
@@ -61,7 +47,7 @@ export default function GroupPollDisplay({ pollId, socket }: GroupPollDisplay) {
     };
 
     getPoll();
-  }, []);
+  }, [pollId]);
 
   useEffect(() => {
     const feedbackTimeout = setTimeout(() => {
@@ -72,11 +58,29 @@ export default function GroupPollDisplay({ pollId, socket }: GroupPollDisplay) {
     };
   }, [feedback]);
 
+  useEffect(() => {
+    socket?.on(VOTE_SUCCESS, async (_) => {
+      const newResult = await getPollInfo(pollId, groupId);
+      if (newResult.error) {
+        setError(newResult.error);
+      } else {
+        setPollObj(newResult.pollObj);
+      }
+    });
+
+    socket?.on(VOTE_FAILED, (result) => {
+      setFeedback({
+        type: 'failure',
+        message: result.error,
+      });
+    });
+  }, [socket]);
+
   // calculating agree and disagree progress
   let agreeProgress = 0;
   let disagreeProgress = 0;
   const pollEmpty = Object.keys(pollObj).length === 0;
-  if (!pollEmpty) {
+  if (!pollEmpty && pollObj.totalRespondent > 0) {
     agreeProgress = Number(
       ((pollObj.agreeCount / pollObj.totalRespondent) * 100).toFixed(2)
     );
@@ -97,7 +101,7 @@ export default function GroupPollDisplay({ pollId, socket }: GroupPollDisplay) {
         </Alert>
       )}
       {pollObj && (
-        <div className='p-3 text-sm'>
+        <div className='p-3 text-sm text-start'>
           <h3 className='text-xl font-bold text-center mb-5'>Group Poll</h3>
           <p className='break-words'>
             Title: <strong>{pollObj.title}</strong>
@@ -110,24 +114,24 @@ export default function GroupPollDisplay({ pollId, socket }: GroupPollDisplay) {
               <legend className='mb-4'>Choose your decision: </legend>
               <div className='flex items-center gap-2'>
                 <Radio
-                  id='agree'
+                  id={`agree-${pollId}`}
                   value='agree'
                   checked={selectedOption === 'agree'}
                   onChange={(e) => setSelectedOption(e.target.value)}
                 />
-                <Label htmlFor='agree'>Agree</Label>
+                <Label htmlFor={`agree-${pollId}`}>Agree</Label>
               </div>
               <div className='flex items-center gap-2'>
                 <Radio
-                  id='disagree'
+                  id={`disagree-${pollId}`}
                   value='disagree'
                   checked={selectedOption === 'disagree'}
                   onChange={(e) => setSelectedOption(e.target.value)}
                 />
-                <Label htmlFor='disagree'>Disagree</Label>
+                <Label htmlFor={`disagree-${pollId}`}>Disagree</Label>
               </div>
-              <Button size='sm' type='submit'>
-                Vote
+              <Button size='sm' type='submit' disabled={pollObj.isVoted}>
+                {pollObj.isVoted ? 'You Have Voted' : 'Vote'}
               </Button>
             </fieldset>
           </form>

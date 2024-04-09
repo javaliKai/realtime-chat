@@ -25,6 +25,7 @@ export interface Friend {
 
 export interface FriendData {
   id: string;
+  is_online: boolean;
   username: string;
 }
 
@@ -111,4 +112,14 @@ export interface GroupPoll {
   totalRespondent: number;
   agreeCount: number;
   disagreeCount: number;
+  isVoted: boolean;
+}
+
+export interface Participant {
+  id: string;
+  username: string;
+}
+
+export interface GroupWithParticipants extends Group {
+  participants: Participant[];
 }

@@ -16,6 +16,7 @@ import {
   GroupPoll,
   Message,
   OpenChatRoomResponse,
+  Participant,
   User,
 } from './definitions';
 import { getUserSession } from './helpers';
@@ -288,14 +289,14 @@ export async function getAllUserFriends() {
       if (userIs1) {
         // fetch the info of the friend i.e. the second user id
         const user2Data = await client.query(
-          'SELECT id, username FROM users WHERE id=$1',
+          'SELECT id, username, is_online FROM users WHERE id=$1',
           [friend.user_id_2]
         );
         friendInfo = user2Data.rows[0];
       } else {
         // otherwise, fetch the info of the friend i.e. the first user id
         const user1Data = await client.query(
-          'SELECT id, username FROM users WHERE id=$1',
+          'SELECT id, username, is_online FROM users WHERE id=$1',
           [friend.user_id_1]
         );
         friendInfo = user1Data.rows[0];
@@ -306,6 +307,7 @@ export async function getAllUserFriends() {
     }
 
     result.friends = friendsArr;
+    console.log(result.friends);
   } catch (error) {
     console.log('Error while fetching friends: ', error);
     result.error = 'Fail to fetch friends.';
@@ -827,6 +829,7 @@ export async function openGroupRoom(groupId: string) {
     group: {} as Group,
     messages: {},
     totalMember: 0,
+    participants: [] as Participant[],
     error: '',
   };
 
@@ -843,13 +846,23 @@ export async function openGroupRoom(groupId: string) {
     const groupData = groupQuery.rows[0];
     if (groupQuery.rowCount !== 0) result.group = groupData;
 
-    // getting how many members in the group
+    // getting how many members in the group & the participants
     const memberQuery = await client.query(
       'SELECT * FROM group_members WHERE group_id=$1',
       [groupId]
     );
     const memberCount = memberQuery.rowCount;
     result.totalMember = memberCount;
+
+    const participants = [] as Participant[];
+    memberQuery.rows.forEach(async (user) => {
+      const userInfo = await client.query(
+        'SELECT id, username FROM users WHERE id=$1',
+        [user.user_id]
+      );
+      participants.push(userInfo.rows[0]);
+    });
+    result.participants = participants;
 
     // Getting group messages
     const messagesQuery = await client.query(
@@ -858,6 +871,7 @@ export async function openGroupRoom(groupId: string) {
     );
     // modify the data to be divided by date
     const messages = messagesQuery.rows;
+
     // message will be grouped by date
     const groupedMessages: { [key: string]: Message[] } = {};
     messages.forEach((message) => {
@@ -951,17 +965,11 @@ export async function createPoll(title: string, groupId: string) {
     const userId = user?.id;
     const creatorUsername = user?.username;
 
-    // record to group_polls table
-    await client.query(
-      'INSERT INTO group_polls(group_id, title, creator_id, creator_username) VALUES ($1, $2, $3, $4)',
-      [groupId, title, userId, creatorUsername]
-    );
-
-    // grab the newly inserted data ID
+    // record to group_polls table and grab the newly inserted data ID
     const latestPoll = (
       await client.query(
-        'SELECT id FROM group_polls WHERE group_id=$1 ORDER BY timestamp DESC',
-        [groupId]
+        'INSERT INTO group_polls(group_id, title, creator_id, creator_username) VALUES ($1, $2, $3, $4) RETURNING id',
+        [groupId, title, userId, creatorUsername]
       )
     ).rows[0];
 
@@ -1000,6 +1008,7 @@ export async function getPollInfo(pollId: string, groupId: string) {
       [pollId, groupId]
     );
     const pollData = pollQuery.rows[0];
+    console.log();
 
     // get the total respondent, agreeCount, and disagreeCount
     const totalRespondent = (
@@ -1020,12 +1029,20 @@ export async function getPollInfo(pollId: string, groupId: string) {
         [pollId]
       )
     ).rowCount;
+    const isVoted =
+      (
+        await client.query(
+          'SELECT * FROM group_poll_responses WHERE user_id=$1 AND poll_id=$2',
+          [userId, pollId]
+        )
+      ).rowCount > 0;
 
     result.pollObj = {
       ...pollData,
       totalRespondent,
       agreeCount,
       disagreeCount,
+      isVoted,
     };
   } catch (error) {
     console.error('Error while getting a poll: ', error);
@@ -1072,6 +1089,28 @@ export async function submitVote(pollId: string, decision: boolean) {
   } catch (error) {
     console.error('Error while sending vote: ', error);
     result.error = 'Fail to submit vote.';
+  } finally {
+    client.release();
+    endPool();
+    return result;
+  }
+}
+
+export async function setUserOnline(userId: string) {
+  const result = {
+    success: false,
+    error: '',
+  };
+
+  const { client, endPool } = await connectDB();
+
+  try {
+    await client.query('UPDATE users SET is_online=true WHERE id=$1', [userId]);
+
+    result.success = true;
+  } catch (error) {
+    console.error('Error while setting user online: ', error);
+    result.error = 'Fail to set user online.';
   } finally {
     client.release();
     endPool();

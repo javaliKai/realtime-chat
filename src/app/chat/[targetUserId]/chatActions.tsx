@@ -43,13 +43,11 @@ export default function ChatActions({ chatRoomId, socket }: ChatActionProps) {
         senderUserId,
       });
     }
+    setMessageInput('');
+    setSendingMessage(false);
   };
 
   useEffect(() => {
-    socket?.on(MESSAGE_SUCCESS, (_) => {
-      setMessageInput('');
-      setSendingMessage(false);
-    });
     socket?.on(MESSAGE_FAILED, (_) => {
       setErrorMsg('Fail to send message.');
       setSendingMessage(false);

@@ -1,7 +1,11 @@
 'use client';
 
 import { createContext, useState } from 'react';
-import { getUser as getUserAction, openChatRoom } from '../lib/actions';
+import {
+  getUser as getUserAction,
+  openChatRoom,
+  setUserOnline,
+} from '../lib/actions';
 import { Message, OpenChatRoomResponse, User } from '../lib/definitions';
 
 type ChatContextType = {
@@ -9,8 +13,9 @@ type ChatContextType = {
   messages: { [key: string]: Message[] };
   chatRoomId: string;
   loading: boolean;
-  getChatRoom: (userId: string) => Promise<boolean> | void;
   targetUserId: string;
+  getChatRoom: (userId: string) => Promise<boolean> | void;
+  makeOnline: (userId: string) => void;
 };
 
 const ChatContext = createContext<ChatContextType>({
@@ -18,8 +23,9 @@ const ChatContext = createContext<ChatContextType>({
   messages: {},
   chatRoomId: '',
   loading: true,
-  getChatRoom: (userId) => {},
   targetUserId: '',
+  getChatRoom: (userId) => {},
+  makeOnline: (userId) => {},
 });
 
 export const ChatContextProvider = ({
@@ -60,11 +66,16 @@ export const ChatContextProvider = ({
     return true;
   };
 
+  const makeOnline = async (userId: string) => {
+    await setUserOnline(userId);
+  };
+
   return (
     <ChatContext.Provider
       value={{
         ...data,
         getChatRoom,
+        makeOnline,
       }}
     >
       {children}

@@ -75,6 +75,7 @@ const GroupSocketComponent = ({
         groupName={group.group_name}
         groupId={group.id}
         totalMember={totalMember}
+        socket={socket}
       />
       <div className='min-h-[70vh]'>
         <GroupChatBody

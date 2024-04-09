@@ -9,6 +9,7 @@ import ChatBody from './chatBody';
 import ChatActions from './chatActions';
 import {
   JOIN_ROOM,
+  MAKE_OFFLINE,
   POPULATE_CHAT,
   RECEIVE_MESSAGE,
   SEND_MESSAGE,
@@ -63,9 +64,8 @@ const ChatSocketComponent = ({
       setSocket(socket);
       console.log(`Socket connected from ID: ${socket.id}`);
       socket.emit(JOIN_ROOM, { chatRoomId, currentUserId, targetUserId });
-
-      // // Populate chat rooms
-      // chatContext.getChatRoom(targetUserId!);
+      // make user online
+      chatContext.makeOnline(currentUserId!);
     });
 
     socket.on(POPULATE_CHAT, async (_) => {
@@ -76,6 +76,12 @@ const ChatSocketComponent = ({
     socket.on('connect_error', () => {
       setTimeout(() => socket.connect(), 5000);
     });
+
+    // to make user status offline
+    window.addEventListener('beforeunload', () => {
+      socket.emit(MAKE_OFFLINE, { userId: currentUserId });
+    });
+
     return () => {
       socket.disconnect();
     };

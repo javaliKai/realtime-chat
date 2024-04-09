@@ -16,6 +16,8 @@ export default function Page() {
   const [friends, setFriends] = useState<FriendData[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<FriendData[]>([]);
 
+  console.log(friends);
+
   useEffect(() => {
     const fetchFriends = async () => {
       setFriendsLoading(true);
@@ -92,6 +94,7 @@ export default function Page() {
                 <FriendBubble
                   key={friend.id}
                   username={friend.username}
+                  isOnline={friend.is_online}
                   userId={friend.id}
                 />
               ))}

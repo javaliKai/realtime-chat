@@ -47,6 +47,7 @@ export default function GroupChatBody({
           type={message.creator_id === currentUserId ? 'sender' : 'receiver'}
           messageType={message.type}
           message={message.text}
+          messageId={message.id}
           creatorUsername={message.creator_username}
           timestamp={message.timestamp}
           socket={socket}

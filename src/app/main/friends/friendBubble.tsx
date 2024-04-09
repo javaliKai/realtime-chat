@@ -8,11 +8,13 @@ import Link from 'next/link';
 type FriendBubbleProps = {
   username: string;
   userId: string;
+  isOnline: boolean;
 };
 
 export default function FriendBubble({
   username,
   userId: targetUserId,
+  isOnline,
 }: FriendBubbleProps) {
   return (
     <>
@@ -22,6 +24,9 @@ export default function FriendBubble({
           <div className='flex items-center'>
             <p>{username}</p>
           </div>
+          <span className='flex items-center text-xs'>
+            {isOnline ? '🟢 Online' : 'Offline'}
+          </span>
         </div>
         <Link href={`/chat/${targetUserId}`}>
           <Button

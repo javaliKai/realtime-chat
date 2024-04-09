@@ -54,7 +54,7 @@ export default function ChatItem({
         {messageType === 'file' ? (
           <FileChatItem fileName={message} />
         ) : (
-          <p className='break-words'>{message}</p>
+          <p className='break-words whitespace-pre-wrap'>{message}</p>
         )}
         {/* {messageContent} */}
         <p className='text-xs text-right text-gray-400'>{timeText}</p>

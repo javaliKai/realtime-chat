@@ -1,18 +1,26 @@
 'use client';
 
-import { createPoll } from '@/app/lib/actions';
+import { createPoll, getUser } from '@/app/lib/actions';
+import {
+  CREATE_POLL,
+  CREATE_POLL_FAILED,
+  CREATE_POLL_SUCCESS,
+} from '@/app/lib/socketEvents';
 import GroupChatContext from '@/app/store/groupContext';
 import { Button, Label, Modal, TextInput } from 'flowbite-react';
 import { useContext, useEffect, useRef, useState } from 'react';
+import { Socket } from 'socket.io-client';
 
 type GroupPollModalProps = {
   showPollModal: boolean;
   setPollModal: (state: boolean) => void;
+  socket: Socket | undefined;
 };
 
 export default function GroupPolllModal({
   showPollModal,
   setPollModal,
+  socket,
 }: GroupPollModalProps) {
   const { groupId } = useContext(GroupChatContext);
   const [feedback, setFeedback] = useState<string>('');
@@ -22,17 +30,24 @@ export default function GroupPolllModal({
     e.preventDefault();
 
     const pollName = pollNameRef.current?.value;
+    const user = await getUser();
+    const userId = user?.id;
+    const creatorUsername = user?.username;
 
-    const result = await createPoll(pollName!, groupId);
+    socket?.emit(CREATE_POLL, { pollName, groupId, userId, creatorUsername });
+  };
 
-    if (result.error) {
+  useEffect(() => {
+    socket?.on(CREATE_POLL_FAILED, (result) => {
       setFeedback(result.error);
-    } else {
+    });
+
+    socket?.on(CREATE_POLL_SUCCESS, (_) => {
       setFeedback('Poll created!');
       setPollModal(false);
       pollNameRef.current!.value = '';
-    }
-  };
+    });
+  }, [socket]);
 
   useEffect(() => {
     const feedbackTiemout = setTimeout(() => {
